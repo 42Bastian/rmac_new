@@ -1,7 +1,7 @@
 //
 // RMAC - Renamed Macro Assembler for all Atari computers
 // DIRECT.C - Directive Handling
-// Copyright (C) 199x Landon Dyer, 2011-2021 Reboot and Friends
+// Copyright (C) 199x Landon Dyer, 2011-2024 Reboot and Friends
 // RMAC derived from MADMAC v1.07 Written by Landon Dyer, 1986
 // Source utilised with the kind permission of Landon Dyer
 //
@@ -1684,6 +1684,8 @@ int d_dcb(WORD siz)
 		auto_even();
 
 	dep_block((uint32_t)evalc, siz, (uint32_t)eval, eattr, exprbuf);
+
+    ErrorIfNotAtEOL();
 	return 0;
 }
 

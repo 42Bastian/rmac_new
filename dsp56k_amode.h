@@ -1,7 +1,7 @@
 //
 // RMAC - Renamed Macro Assembler for the Atari Jaguar Console System
 // DSP56K_AMODE.H - Addressing Modes for Motorola DSP56001
-// Copyright (C) 199x Landon Dyer, 2011-2021 Reboot and Friends
+// Copyright (C) 199x Landon Dyer, 2011-2024 Reboot and Friends
 // RMAC derived from MADMAC v1.07 Written by Landon Dyer, 1986
 // Source utilised with the kind permission of Landon Dyer
 //
@@ -70,6 +70,8 @@
 // Attribute masks
 #define PARMOVE      0x00000001L
 #define NOPARMO      0x00000000L
+#define PARNOWRITE	0x00000002L	// Instruction does not write to a destination (CMP and TST mostly)
+#define PARTEST		(PARMOVE|PARNOWRITE)
 
 // DSP EA modes
 

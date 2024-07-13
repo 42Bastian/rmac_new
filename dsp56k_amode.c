@@ -1,7 +1,7 @@
 //
 // RMAC - Renamed Macro Assembler for the Atari Jaguar Console System
 // AMODE.C - DSP 56001 Addressing Modes
-// Copyright (C) 199x Landon Dyer, 2011-2021 Reboot and Friends
+// Copyright (C) 199x Landon Dyer, 2011-2024 Reboot and Friends
 // RMAC derived from MADMAC v1.07 Written by Landon Dyer, 1986
 // Source utilised with the kind permission of Landon Dyer
 //
@@ -1168,7 +1168,7 @@ static inline LONG check_x_y(LONG ea1, LONG S1)
 //
 // Parse X: addressing space parallel moves
 //
-static inline LONG parse_x(const int W, LONG inst, const LONG S1, const int check_for_x_y)
+static inline LONG parse_x(const int W, LONG inst, const LONG S1, const int check_for_x_y, WORD dest)
 {
 	int immreg;					// Immediate register destination
 	LONG S2, D1, D2;			// Source and Destinations
@@ -1207,6 +1207,9 @@ x_checkea_right:
 						if (S1 != 14)
 							return error("unrecognised X:R parallel move syntax: S1 can only be a in 'a,X:ea x0,a'");
 
+						if (S1 == 14 && ea1 == DSP_EA_ABS)
+							return error("unrecognised X:R parallel move syntax: absolute address not allowed in 'a,X:ea x0,a'");
+
 						if (ea1 == -1)
 							return error("unrecognised X:R parallel move syntax: absolute address not allowed in 'a,X:ea x0,a'");
 
@@ -1219,11 +1222,17 @@ x_checkea_right:
 					else if (*tok == REG56_X0 && tok[1] == ',' && tok[2] == REG56_B)
 					{
 						// 'B,X:ea X0,B'
+						if (dest == REG56_B)
+							return error("illegal X:R parallel move syntax: base instruction's destination register cannot be b in 'b,X:ea x0,b'");
+
 						if (ea1 == DSP_EA_ABS)
 							deposit_extra_ea = DEPOSIT_EXTRA_WORD;
 
 						if (S1 != 15)
 							return error("unrecognised X:R parallel move syntax: S1 can only be b in 'b,X:ea x0,b'");
+
+						if (S1 == 15 && ea1 == DSP_EA_ABS)
+							return error("unrecognised X:R parallel move syntax: absolute address not allowed in 'b,X:ea x0,b'");
 
 						if (ea1 == -1)
 							return error("unrecognised X:R parallel move syntax: absolute address not allowed in 'b,X:ea x0,b'");
@@ -1653,7 +1662,7 @@ x_gotea1:
 //
 // Parse Y: addressing space parallel moves
 //
-static inline LONG parse_y(LONG inst, LONG S1, LONG D1, LONG S2)
+static inline LONG parse_y(LONG inst, LONG S1, LONG D1, LONG S2, WORD dest)
 {
     int immreg;					// Immediate register destination
     LONG D2;					// Destination
@@ -1861,6 +1870,13 @@ static inline LONG parse_y(LONG inst, LONG S1, LONG D1, LONG S2)
 		{
 			//'Y:ea,D'
 			D1 = SDreg(*tok++);
+			
+			if (dest && dest == REG56_A && (D1 == 14 || D1 == 0 || D1 == 1 || D1 == 2))
+				return error("illegal R:Y parallel move syntax: cannot have base instruction's destination register to be a and D in 'Y:ea,D' to be a, a0, a1 or a2");
+
+			if (dest && dest == REG56_B && (D1 == 15 || D1 == 8 || D1 == 9 || D1 == 10))
+				return error("illegal R:Y parallel move syntax: cannot have base instruction's destination register to be a and D in 'Y:ea,D' to be a, a0, a1 or a2");
+
 			inst |= 0b0000000001000000;
 			inst |= ea1;
 			inst |= ((D1 & 0x18) << (12 - 3)) + ((D1 & 7) << 8);
@@ -2499,6 +2515,7 @@ LONG checkea_full(const uint32_t termchar, const int strings)
 // dest=destination register from the main opcode. This must not be the same
 // as D1 or D2 and that even goes for stuff like dest=A, D1=A0/1/2!!!
 //
+//
 LONG parmoves(WORD dest)
 {
 	int force_imm;          // Addressing mode force operator
@@ -2539,10 +2556,20 @@ LONG parmoves(WORD dest)
 		if (!((*tok >= REG56_X0 && *tok <= REG56_N7) || (*tok >= REG56_R0 && *tok <= REG56_R7) || (*tok >= REG56_A0 && *tok <= REG56_A2)))
 			return error("expected x0,x1,y0,y1,a0,b0,a2,b2,a1,b1,a,b,r0-r7,n0-n7 after immediate");
 
-		immreg = SDreg(*tok++);
+		D1 = *tok++;
+		immreg = SDreg(D1);
 
 		if (*tok == EOL)
 		{
+			if (dest == REG56_A && (D1 == REG56_A || D1 == REG56_A0 || D1 == REG56_A1 || D1 == REG56_A2))
+			{
+				return error("illegal #xxxxxx,D parallel move syntax: instruction's destination register cannot be a and D in '#xxxxxx,D' be a, a0, a1 or a2");
+			}
+			if (dest == REG56_B && (D1 == REG56_B || D1 == REG56_B0 || D1 == REG56_B1 || D1 == REG56_B2))
+			{
+				return error("illegal #xxxxxx,D parallel move syntax: instruction's destination register cannot be b and D in '#xxxxxx,D' be b, b0, b1 or b2");
+			}
+
 			if (!(dspImmedEXATTR & FLOAT))
 			{
 				if (dspImmedEXATTR & DEFINED)
@@ -2603,11 +2630,11 @@ deposit_immediate_long_with_register:
 						return inst;
 					}
 
-					if (((int32_t)dspImmedEXVAL < 0x100) && ((int32_t)dspImmedEXVAL >= -0x100))
+					if (dspImmedEXVAL + 0x100 < 0x200)
 					{
 						// value fits in 8 bits - immediate move
 deposit_immediate_short_with_register:
-						inst = 0b0010000000000000 + (immreg << 8) + (uint32_t)dspImmedEXVAL;
+						inst = 0b0010000000000000 + (immreg << 8) | (uint8_t)dspImmedEXVAL;
 						return inst;
 					}
 					else
@@ -2759,7 +2786,7 @@ deposit_immediate_short_with_register:
 			return error("expected ':' after 'X' in parallel move (i.e. X:)");
 
 		// 'X:ea,D' or 'X:aa,D' or 'X:ea,D1 S2,D2' or 'X:eax,D1 Y:eay,D2' or 'X:eax,D1 S2,Y:eay'
-		return parse_x(1, 0b0100000000000000, 0, 1);
+		return parse_x(1, 0b0100000000000000, 0, 1, dest);
 	}
 	else if (*tok == REG56_Y)
 	{
@@ -2773,7 +2800,7 @@ deposit_immediate_short_with_register:
 			return error("expected ':' after 'Y' in parallel move (i.e. Y:)");
 
 		// 'Y:ea,D' or 'Y:aa,D'
-		return parse_y(0b0100100010000000, 0, 0, 0);
+		return parse_y(0b0100100010000000, 0, 0, 0, dest);
 	}
 	else if (*tok == REG56_L)
 	{
@@ -2810,7 +2837,7 @@ parse_everything_else:
 			if (*tok++ != ':')
 				return error("unrecognised X: parallel move syntax: expected ':' after 'S,X'");
 
-			return parse_x(0, 0b0100000000000000, S1, 1);
+			return parse_x(0, 0b0100000000000000, S1, 1, dest);
 		}
 		else if (*tok == REG56_Y)
 		{
@@ -2820,7 +2847,7 @@ parse_everything_else:
 			if (*tok++ != ':')
 				return error("unrecognised Y: parallel move syntax: expected ':' after 'S,Y'");
 
-			return parse_y(0b000000000000000, S1, 0, 0);
+			return parse_y(0b000000000000000, S1, 0, 0, dest);
 		}
 		else if (*tok == REG56_L)
 		{
@@ -2852,7 +2879,7 @@ parse_everything_else:
 				tok++;
 				if (*tok++ != ':')
 					return error("expected ':' after 'Y' in parallel move (i.e. Y:)");
-				return parse_y(0b0001000001000000, S1, D1, 0);
+				return parse_y(0b0001000001000000, S1, D1, 0, dest);
 
 			}
 			else if (*tok == REG56_A || *tok == REG56_B || *tok == REG56_Y0 || *tok == REG56_Y1)
@@ -2873,6 +2900,9 @@ parse_everything_else:
 						return error("unrecognised Y: parallel move syntax: expected ':' after Y0,A A,Y");
 
 					ea1 = checkea_full(EOL, Y_ERRORS);
+
+					if (ea1 == DSP_EA_ABS)
+						return error("unrecognised X:R parallel move syntax: absolute address not allowed in 'y0,a a,y:ea'");
 
 					if (ea1 == ERROR)
 						return ERROR;

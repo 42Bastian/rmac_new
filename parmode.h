@@ -1,7 +1,7 @@
 //
 // RMAC - Renamed Macro Assembler for all Atari computers
 // PARMODE.C - Addressing Modes Parser Include
-// Copyright (C) 199x Landon Dyer, 2011-2021 Reboot and Friends
+// Copyright (C) 199x Landon Dyer, 2011-2024 Reboot and Friends
 // RMAC derived from MADMAC v1.07 Written by Landon Dyer, 1986
 // Source utilised with the kind permission of Landon Dyer
 //
@@ -962,6 +962,12 @@ IS_SUPPRESSEDn:
 				{
 					parenthesis_level--;
 					if (parenthesis_level < 0) return error("unbalanced parenthesis in expression");
+					if (look_ahead[1] == DOTW || look_ahead[1] == DOTL)
+					{
+						tok--;
+						this_is_an_expression = 1;
+						break;
+					}
 					look_ahead++;
 					continue;
 				}
@@ -979,7 +985,9 @@ IS_SUPPRESSEDn:
 
 			// It could be that this is really just an expression prefixing a
 			// register as a displacement...
-			if (*tok == '(')
+			// (ggn) Or we could have hit an expression from the peeking above which
+			// is postifixed by a ".w" or ".l"
+			if (*tok == '(' || *tok == DOTW || *tok == DOTL)
 			{
 				goto CHK_FOR_DISPn;
 			}

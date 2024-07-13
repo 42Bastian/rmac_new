@@ -26,9 +26,9 @@ HOSTCC = gcc
 
 #CFLAGS = -std=$(STD) -D_DEFAULT_SOURCE -g -D__GCCUNIX__ -I. -O2 -MMD
 CFLAGS = -std=$(STD) -D_DEFAULT_SOURCE -g -D__GCCUNIX__ -I. -O2
-CFLAGS+= -Wno-pointer-sign
+CFLAGS+= -Wno-pointer-sign -Wno-deprecated-non-prototype
 
-OBJS = 6502.o amode.o debug.o direct.o dsp56k.o dsp56k_amode.o dsp56k_mach.o eagen.o error.o expr.o fltpoint.o listing.o mach.o macro.o mark.o object.o op.o procln.o riscasm.o rmac.o sect.o symbol.o token.o
+OBJS = 6502.o amode.o debug.o direct.o dsp56k.o dsp56k_amode.o dsp56k_mach.o eagen.o error.o expr.o fltpoint.o listing.o mach.o macro.o mark.o object.o op.o procln.o riscasm.o rmac.o sect.o symbol.o token.o dirent_lose.o
 
 #
 # Build everything
@@ -163,3 +163,4 @@ symbol.o: symbol.c symbol.h error.h rmac.h listing.h object.h procln.h \
  token.h
 token.o: token.c token.h rmac.h symbol.h direct.h error.h macro.h \
  procln.h sect.h riscasm.h kwtab.h unarytab.h
+dirent_lose.o: dirent_lose.h

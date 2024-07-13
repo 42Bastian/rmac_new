@@ -1,7 +1,7 @@
 //
 // RMAC - Renamed Macro Assembler for all Atari computers
 // ERROR.C - Error Handling
-// Copyright (C) 199x Landon Dyer, 2011-2021 Reboot and Friends
+// Copyright (C) 199x Landon Dyer, 2011-2024 Reboot and Friends
 // RMAC derived from MADMAC v1.07 Written by Landon Dyer, 1986
 // Source utilised with the kind permission of Landon Dyer
 //
@@ -119,7 +119,7 @@ int error(const char * text, ...)
 			uint16_t fnum = cur_inobj->inobj.imacro->im_macro->cfileno;
 
 			// Check for absolute top filename (this should never happen)
-			if (fnum == (uint16_t)-1)
+			if ((int16_t)fnum == -1)
 				interror(8);
 			else
 			{

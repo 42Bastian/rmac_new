@@ -1,7 +1,7 @@
 //
 // RMAC - Renamed Macro Assembler for all Atari computers
 // SECT.C - Code Generation, Fixups and Section Management
-// Copyright (C) 199x Landon Dyer, 2011-2021 Reboot and Friends
+// Copyright (C) 199x Landon Dyer, 2011-2024 Reboot and Friends
 // RMAC derived from MADMAC v1.07 Written by Landon Dyer, 1986
 // Source utilised with the kind permission of Landon Dyer
 //
@@ -28,6 +28,9 @@ void SwitchSection(int);
 // Section descriptors
 SECT sect[NSECTS];		// All sections...
 int cursect;			// Current section number
+
+// These are copied from the section descriptor, the current code chunk
+int fixups_active = 0;	// Give a heads up to expr() because it might need to take some special measures
 
 // These are copied from the section descriptor, the current code chunk
 // descriptor and the current fixup chunk descriptor when a switch is made into
@@ -463,7 +466,7 @@ int ResolveFixups(int sno)
 				continue;
 
 			if (esym)
-				if (!(esym->sattr & DEFINED))
+				if (!(esym->sattr & DEFINED) && eval==0)
 				{
 					// If our expression still has an undefined symbol at this stage, it's bad news.
 					// The linker is never going to resolve the expression, so that's an error.
@@ -540,7 +543,7 @@ int ResolveFixups(int sno)
 						{
 						case TEXT:
 // Shouldn't there be a break here, since otherwise, it will point to the DATA section?
-//							break;
+							break;
 						case DATA:
 							eval += sect[TEXT].sloc;
 							break;
@@ -1043,6 +1046,11 @@ int ResolveAllFixups(void)
 	// Make undefined symbols GLOBL
 	if (glob_flag)
 		ForceUndefinedSymbolsGlobal();
+
+	if (prg_flag)
+	{
+		fixups_active = 1;
+	}
 
 	DEBUG printf("Resolving TEXT sections...\n");
 	ResolveFixups(TEXT);

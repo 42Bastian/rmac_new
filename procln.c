@@ -1,7 +1,7 @@
 //
 // RMAC - Renamed Macro Assembler for all Atari computers
 // PROCLN.C - Line Processing
-// Copyright (C) 199x Landon Dyer, 2011-2022 Reboot and Friends
+// Copyright (C) 199x Landon Dyer, 2011-2024 Reboot and Friends
 // RMAC derived from MADMAC v1.07 Written by Landon Dyer, 1986
 // Source utilised with the kind permission of Landon Dyer
 //
@@ -685,9 +685,10 @@ When checking to see if it's already been equated, issue a warning.
 		if (state >= 2000)
 		{
 			LONG parcode;
-			int operands;
+			int operands = 0;
 			MNTABDSP * md = &dsp56k_machtab[state - 2000];
 			deposit_extra_ea = 0;   // Assume no extra word needed
+			dsp_a1reg = 0;
 
 			if (md->mnfunc == dsp_mult)
 			{
@@ -698,7 +699,7 @@ When checking to see if it's already been equated, issue a warning.
 			}
 			else if ((md->mnattr & PARMOVE) && md->mn0 != M_AM_NONE)
 			{
-				if (dsp_amode(2) == ERROR)
+				if ((operands = dsp_amode(2)) == ERROR)
 					goto loop;
 			}
 			else if ((md->mnattr & PARMOVE) && md->mn0 == M_AM_NONE)
@@ -725,7 +726,33 @@ When checking to see if it's already been equated, issue a warning.
 			if (md->mnattr & PARMOVE)
 			{
 				// Check for parallel moves
-				if ((parcode = parmoves(dsp_a1reg)) == ERROR)
+				// We need to pass the information of which destination 
+				// register (if any) is in the main opcode to the parallel
+				// moves routine. This is a bit more nuanced than originally
+				// expected: for starters, different variables hold the 
+				// destination register depending on the amount of operands
+				// (dsp_a1reg, etc). Then some instructions with parallel moves
+				// simply do not alter any register (cmp and tst mostly). There
+				// are also cases of the instruction not containing any register
+				// (example: move with only a X:R field).
+				int destination_register = dsp_a1reg;
+				if (md->mnattr & PARNOWRITE)
+				{
+					destination_register = 0;
+				}
+				else if (operands == 3)
+				{
+					destination_register = dsp_a2reg;
+				}
+				else if (operands == 4)
+				{
+					// No parallel moves
+				}
+				else if (operands == 0)
+				{
+					destination_register = 0;
+				}
+				if ((parcode = parmoves(destination_register)) == ERROR)
 					goto loop;
 			}
 			else

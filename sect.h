@@ -1,7 +1,7 @@
 //
 // RMAC - Renamed Macro Assembler for all Atari computers
 // SECT.H - Code Generation, Fixups and Section Management
-// Copyright (C) 199x Landon Dyer, 2011-2021 Reboot and Friends
+// Copyright (C) 199x Landon Dyer, 2011-2024 Reboot and Friends
 // RMAC derived from MADMAC v1.07 Written by Landon Dyer, 1986
 // Source utilized with the kind permission of Landon Dyer
 //
@@ -200,6 +200,7 @@ extern int cursect;
 extern SECT sect[];
 extern uint32_t challoc;
 extern CHUNK * scode;
+extern int fixups_active;
 
 // Prototypes
 void InitSection(void);

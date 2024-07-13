@@ -1,7 +1,7 @@
 //
 // RMAC - Renamed Macro Assembler for all Atari computers
 // RMAC.H - Main Application Code
-// Copyright (C) 199x Landon Dyer, 2011-2022 Reboot and Friends
+// Copyright (C) 199x Landon Dyer, 2011-2024 Reboot and Friends
 // RMAC derived from MADMAC v1.07 Written by Landon Dyer, 1986
 // Source utilised with the kind permission of Landon Dyer
 //
@@ -11,7 +11,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <ctype.h>
 #include <sys/types.h>
@@ -23,6 +22,7 @@
 #if defined(WIN32) || defined(WIN64)
 	#include <io.h>
 	#include <fcntl.h>
+	#include "dirent_lose.h"
 	// Release platform - windows
 	#define PLATFORM        "Win32"
 	#define _OPEN_FLAGS     _O_TRUNC|_O_CREAT|_O_BINARY|_O_RDWR
@@ -55,7 +55,18 @@
 
 	#endif
 
+	// Ever since Visual Studio... 2017? 2019? the following constants come
+	// defined in the platform SDK, which leads to endless warnings from the
+	// compiler. So let's just put the pacifier on and undef them, sheesh! (No,
+	// we won't rename the defines, we've been here since 1986, Visual Studio
+	// wasn't even a glimpse in the milkman's eyes, if you catch my drift)
+	#undef CONST
+	#undef ERROR
+	#undef TEXT
+
 #else
+
+	#include <dirent.h>
 
 	#ifdef __GCCUNIX__
 
@@ -157,19 +168,7 @@
 // Non-target specific stuff
 //
 #include <inttypes.h>
-#include <dirent.h>
 #include "symbol.h"
-
-#if defined(WIN32) || defined(WIN64)
-// Ever since Visual Studio... 2017? 2019? the following constants come defined in the
-// platform SDK, which leads to endless warnings from the compiler. So let's just
-// put the pacifier on and undef them, sheesh! (No, we won't rename the defines,
-// we've been here since 1986, Visual Studio wasn't even a glimpse in the milkman's eyes,
-// if you catch my drift)
-#undef CONST
-#undef ERROR
-#undef TEXT
-#endif
 
 #define BYTE         uint8_t
 #define WORD         uint16_t

@@ -1,7 +1,7 @@
 //
 // RMAC - Renamed Macro Assembler for all Atari computers
 // RMAC.C - Main Application Code
-// Copyright (C) 199x Landon Dyer, 2011-2022 Reboot and Friends
+// Copyright (C) 199x Landon Dyer, 2011-2024 Reboot and Friends
 // RMAC derived from MADMAC v1.07 Written by Landon Dyer, 1986
 // Source utilised with the kind permission of Landon Dyer
 //
@@ -227,7 +227,7 @@ void DisplayVersion(void)
 		"| |  | | | | | | (_| | (__ \n"
 		"|_|  |_| |_| |_|\\__,_|\\___|\n"
 		"\nRenamed Macro Assembler\n"
-		"Copyright (C) 199x Landon Dyer, 2011-2022 Reboot and Friends\n"
+		"Copyright (C) 199x Landon Dyer, 2011-2024 rmac authors\n"
 		"V%01i.%01i.%01i-BS42 %s (%s)\n\n", MAJOR, MINOR, PATCH, __DATE__, PLATFORM);
 }
 
@@ -378,6 +378,7 @@ int Process(int argc, char ** argv)
 	regcheck = reg68check;			// Idem
 	regaccept = reg68accept;		// Idem
     correctMathRules = 0;			// respect operator precedence
+	used_architectures = 0;			// Initialise used architectures bitfield
 	// Initialize modules
 	InitSymbolTable();				// Symbol table
 	InitTokenizer();				// Tokenizer
@@ -417,16 +418,33 @@ int Process(int argc, char ** argv)
 					return errcnt;
 				}
 
-				sy = lookup((uint8_t *)argv[argno] + 2, 0, 0);
+				sy = lookup(argv[argno] + 2, 0, 0);
 
 				if (sy == NULL)
 				{
-				  sy = NewSymbol((uint8_t *)argv[argno] + 2, LABEL, 0);
+					sy = NewSymbol(argv[argno] + 2, LABEL, 0);
 					sy->svalue = 0;
 				}
 
 				sy->sattr = DEFINED | EQUATED | ABS;
-				sy->svalue = (*s ? (uint64_t)atoi(s) : 0);
+				sy->svalue = 0;
+				if (*s)
+				{
+					if (*s == '$')
+					{
+						// Hex number
+						s++;
+						if (*s)
+						{
+							sy->svalue = strtol(s, 0, 16);
+						}
+					}
+					else
+					{
+						sy->svalue = (uint64_t)atoi(s);
+					}
+				}
+				//sy->svalue = (*s ? (uint64_t)atoi(s) : 0);
 				break;
 			case 'e':				// Redirect error message output
 			case 'E':

@@ -1,7 +1,7 @@
 //
 // RMAC - Renamed Macro Assembler for all Atari computers
 // EXPR.C - Expression Analyzer
-// Copyright (C) 199x Landon Dyer, 2011-2021 Reboot and Friends
+// Copyright (C) 199x Landon Dyer, 2011-2024 Reboot and Friends
 // RMAC derived from MADMAC v1.07 Written by Landon Dyer, 1986
 // Source utilised with the kind permission of Landon Dyer
 //
@@ -262,7 +262,7 @@ int expr1(void)
 						goto allright;
 				}
 
-				return error("cannot open: \"%s\"", string[tok[1]]);
+				return error("cannot open: \"%s\"", string[*tok]);
 			}
 
 allright:
@@ -582,6 +582,7 @@ be converted from a linked list into an array).
 	return evexpr(otk, a_value, a_attr, a_esym);
 }
 
+extern int fixups_active;
 //
 // Evaluate expression.
 // If the expression involves only ONE external symbol, the expression is
@@ -711,6 +712,49 @@ int evexpr(TOKEN * _tk, uint64_t * a_value, WORD * a_attr, SYM ** a_esym)
 			}
 			else
 			{
+				if (fixups_active)
+				{
+					// This code addresses a very specific issue found when
+					// assembling code in ALCYON mode and outputting ST PRG
+					// binaries. At the time of assembling the start of
+					// TEXT, DATA and BSS is 0 based. This is because we 
+					// have no idea how big TEXT's size is going to be in order
+					// to know what's the offset of DATA (same for BSS).
+					// In general, most cases are handled during fixups as
+					// at that point everything is known, so we can adjust the
+					// address of labels etc etc. But in the case of calculating
+					// an expression where some of its parts are in one section
+					// and some in another, then this won't work. Since we
+					// most likely are going to encounter expressions that
+					// subtract cross-section labels (at least I cannot think
+					// of any other use case), we add checks for these cases
+					// here but only when fixups are happening. This will
+					// simply add the start of a DATA or BSS label to it
+					// before doing the subtraction, so then the distance
+					// between the two labels will be calculated correctly.
+					// Note that this doesn't work if the labels are fixed
+					// up before this stage.
+					if ((sattr[0] & TDB) && (sattr[1] & TDB) && (sattr[0] & TDB) != (sattr[1] & TDB))
+					{
+						if (sattr[0] & DATA)
+						{
+							sval[0] += sect[TEXT].sloc;
+						}
+						else if (sattr[0] & BSS)
+						{
+							sval[0] += sect[TEXT].sloc + sect[DATA].sloc;
+						}
+						if (sattr[1] & DATA)
+						{
+							sval[1] += sect[TEXT].sloc;
+						}
+						else if (sattr[1] & BSS)
+						{
+							sval[1] += sect[TEXT].sloc + sect[DATA].sloc;
+						}
+					}
+				}
+
 				*sval -= sval[1];
 			}
 

@@ -1,7 +1,7 @@
 //
 // RMAC - Renamed Macro Assembler for all Atari computers
 // SYMBOL.C - Symbol Handling
-// Copyright (C) 199x Landon Dyer, 2011-2022 Reboot and Friends
+// Copyright (C) 199x Landon Dyer, 2011-2024 Reboot and Friends
 // RMAC derived from MADMAC v1.07 Written by Landon Dyer, 1986
 // Source utilised with the kind permission of Landon Dyer
 //
@@ -226,7 +226,7 @@ void ForceUndefinedSymbolsGlobal(void)
 //       count of the # of symbols in the symbol table, and the second is to
 //       actually create it.
 //
-uint32_t AssignSymbolNos(uint8_t * buf, uint8_t *(* construct)())
+uint32_t AssignSymbolNos(uint8_t * buf, uint8_t *(* construct)(uint8_t * buf, SYM * sym, int globflag))
 {
 	uint16_t scount = 0;
 
@@ -298,7 +298,7 @@ uint32_t AssignSymbolNos(uint8_t * buf, uint8_t *(* construct)())
 // N.B.: It should be possible to merge this with AssignSymbolNos, as there's
 //       nothing really ELF specific in here, other than the "globals go at the
 //       end of the queue" thing, which doesn't break the others. :-P
-uint32_t AssignSymbolNosELF(uint8_t * buf, uint8_t *(* construct)())
+uint32_t AssignSymbolNosELF(uint8_t * buf, uint8_t *(* construct)(uint8_t * buf, SYM * sym, int globflag))
 {
 	uint16_t scount = 0;
 
